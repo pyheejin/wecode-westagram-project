@@ -22,9 +22,3 @@ class CommentView(View):
     def get(self, request):
         comment = Comment.objects.values()
         return JsonResponse({'comments':list(comment)}, status=200)
-
-
-class myCommentView(View):
-    def get(self, request, name):
-        comment = Comment.objects.filter(name=name).values()
-        return JsonResponse({'comment':list(comment)}, status=200)

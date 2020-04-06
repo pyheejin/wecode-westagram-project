@@ -28,7 +28,6 @@ class UserLoginView(View):
         if User.objects.filter(email=data['email']).exists():
             user = User.objects.get(email=data['email'])
             if user.password == data['password']:
-                # login(request, user)
                 return JsonResponse({'message': '로그인 성공'}, status=200)
             else:
                 return JsonResponse({'message': '비밀번호를 확인하세요'}, status=200)
