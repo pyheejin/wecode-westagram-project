@@ -6,14 +6,14 @@ from django.views import View
 from django.http import JsonResponse
 
 from .models import Comment
+from user.models import User
 
 
 class CommentView(View):
     def post(self, request):
         data = json.loads(request.body)
-        print(data)
         Comment(
-            name=data['name'],
+            name=User.objects.get(name=data['name']),
             text=data['text'],
         ).save()
         print(data)
