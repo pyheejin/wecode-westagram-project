@@ -1,19 +1,17 @@
+from django.db import IntegrityError
+from django.core.validators import validate_email, ValidationError
 from django.shortcuts import render
 
 # Create your views here.
+import json
 from django.http import JsonResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from django.views import View
-from .models import User
-from django.db import IntegrityError
-from django.core.validators import validate_email, ValidationError
 from django.contrib.auth import authenticate, login, logout
 
+from .models import User
 
-@method_decorator(csrf_exempt, name='dispatch')
+
 class BaseView(View):
-
     @staticmethod
     def response(data={}, message='', status=200):
         result = {
@@ -23,44 +21,39 @@ class BaseView(View):
         return JsonResponse(result, status=status)
 
 
-class UserLoginView(BaseView):
+class UserLoginView(View):
     def post(self, request):
-        email = request.POST.get('email', '')
-        if not email:
-            return self.response(message='이메일 입력해주세요.', status=400)
-        password = request.POST.get('password', '')
-        if not password:
-            return self.response(message='비밀번를 입력해주세요.', status=400)
+        data = json.loads(request.body)
 
-        user = authenticate(request, email=email, password=password)
-        if user is None:
-            return self.response(message='입력 정보를 확인해주세요.', status=400)
-        login(request, user)
-        return self.response()
+        if User.objects.filter(email=data['email']).exists():
+            user = User.objects.get(email=data['email'])
+            if user.password == data['password']:
+                return JsonResponse({'message': '로그인 성공'}, status=200)
+            else:
+                return JsonResponse({'message': '비밀번호를 확인하세요'}, status=200)
+
+        return JsonResponse({'message': '입력 정보를 확인해주세요'}, status=200)
 
 
-class UserLogoutView(BaseView):
+class UserLogoutView(View):
     def get(self, request):
         logout(request)
-        return self.response()
+        return JsonResponse({'message': '로그아웃 성공'}, status=200)
 
 
 class UserCreateView(BaseView):
     def post(self, request):
-        name = request.POST.get('name', '')
-        if not name:
-            return self.response(message='이름을 입력해주세요.', status=400)
-        password = request.POST.get('password', '')
-        if not password:
-            return self.response(message='비밀번를 입력해주세요.', status=400)
-        email = request.POST.get('email', '')
-        try:
-            validate_email(email)
-        except ValidationError:
-            return self.response(message='올바른 이메일을 입력해주세요.', status=400)
-        try:
-            user = User.objects.create_user(name, email, password)
-        except IntegrityError:
-            return self.response(message='이미 존재하는 아이디입니다.', status=400)
+        data = json.loads(request.body)
+        User(
+            name=data['name'],
+            email=data['email'],
+            password=data['password'],
+        ).save()
 
-        return self.response({'user.id': user.id})
+        return JsonResponse({'message': 'SUCCESS'}, status=200)
+
+
+class UserGetView(View):
+    def get(self, request):
+        user_data = User.objects.values()
+        return JsonResponse({'users': list(user_data)}, status=200)
